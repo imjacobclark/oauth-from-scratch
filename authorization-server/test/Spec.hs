@@ -4,7 +4,9 @@ import Data.Either
 
 data Scope = Read | Write deriving (Show, Eq)
 
-newtype ClientID = ClientID { clientId :: Int } deriving (Show, Eq)
+newtype ClientID = ClientID { 
+    clientId :: Int 
+} deriving (Show, Eq)
 
 data Client = Client { id :: ClientID
                         , clientSecret :: Int
@@ -18,13 +20,13 @@ writeAndReadClient = Client (ClientID 3) 123459876 [Read, Write] ["http://localh
 unscopedClient = Client (ClientID 3) 987612345 [] ["http://localhost:3000/callback"]
 
 getAllClients :: [Client]
-getAllClients = [readClient, writeClient]
+getAllClients = [readClient, writeClient, writeAndReadClient, unscopedClient]
 
 findClientByClientID :: ClientID -> Maybe Client
 findClientByClientID clientIDToFind = find (\client -> (clientId $ Main.id client) == (clientId clientIDToFind)) getAllClients
 
 validateClientHasScope :: Client -> Scope -> Maybe Scope
-validateClientHasScope client requestedScope = find (\clientScope -> clientScope == requestedScope) (scope client)
+validateClientHasScope client requestedScope = find (== requestedScope) (scope client)
 
 validateRequestedScope :: Client -> Maybe [Scope] -> Maybe [Scope]
 validateRequestedScope _ Nothing = Nothing
