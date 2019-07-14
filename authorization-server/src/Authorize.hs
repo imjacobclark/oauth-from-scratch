@@ -3,17 +3,7 @@ module Authorize where
 import Data.List
 import Data.Either
 
-data Scope = Read | Write deriving (Show, Eq)
-
-newtype ClientID = ClientID { 
-    clientId :: Int 
-} deriving (Show, Eq)
-
-data Client = Client { id :: ClientID
-                        , clientSecret :: Int
-                        , scope :: [Scope]
-                        , redirectUris :: [String]
-                    } deriving (Show, Eq)
+import Models.Client
 
 readClient = Client (ClientID 1) 123456789 [Read] ["http://localhost:3000/callback"]
 writeClient = Client (ClientID 2) 987654321 [Write] ["http://localhost:3000/callback"]
@@ -26,17 +16,24 @@ getAllClients :: [Client]
 getAllClients = [readClient, writeClient, writeAndReadClient, unscopedClient]
 
 findClientByClientID :: ClientID -> Maybe Client
-findClientByClientID clientIDToFind = find (\client -> (clientId $ Authorize.id client) == (clientId clientIDToFind)) getAllClients
+findClientByClientID clientIDToFind = find (\client -> (clientId $ Models.Client.id client) == (clientId clientIDToFind)) getAllClients
 
 validateClientHasScope :: Client -> Scope -> Maybe Scope
 validateClientHasScope client requestedScope = find (== requestedScope) (scope client)
 
-validateRequestedScope :: Client -> [Scope] -> Maybe [Scope]
-validateRequestedScope _ [] = Nothing
-validateRequestedScope client requestedScopes =
+validateRequestedScope :: Maybe Client -> [Scope] -> Maybe [Scope]
+validateRequestedScope Nothing [] = Nothing
+validateRequestedScope (Just client) requestedScopes =
     let scopeValidationResults = validateClientHasScope client <$> requestedScopes
      in sequence scopeValidationResults
 
-validateRedirectUri :: Client -> String-> Maybe String
-validateRedirectUri client [] = Nothing
-validateRedirectUri client redirectUri = find (== redirectUri) (redirectUris client)
+validateRedirectUri :: Maybe Client -> String-> Maybe String
+validateRedirectUri Nothing [] = Nothing
+validateRedirectUri (Just client) redirectUri = find (== redirectUri) (redirectUris client)
+
+validateClientRequestingAuthorization :: Client -> Maybe Client
+validateClientRequestingAuthorization client
+    | (findClientByClientID . Models.Client.id $ client) == Nothing = Nothing
+    | (validateRequestedScope (findClientByClientID . Models.Client.id $ client) (scope $ client)) == Nothing = Nothing
+    | (validateRedirectUri (findClientByClientID . Models.Client.id $ client) ((redirectUris $ client) !! 0)) == Nothing = Nothing
+    | otherwise = Just client
