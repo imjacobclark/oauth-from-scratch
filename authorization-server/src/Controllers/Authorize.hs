@@ -1,4 +1,4 @@
-module Authorize where
+module Controllers.Authorize where
     
 import Data.List
 import Data.Either

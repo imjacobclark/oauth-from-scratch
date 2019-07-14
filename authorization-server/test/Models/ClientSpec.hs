@@ -2,7 +2,7 @@ module Models.ClientSpec where
 
 import Test.HUnit
 
-import Authorize
+import Controllers.Authorize
 import Models.Client
 
 testWithReadStringToReadScopeType = TestCase (assertEqual "returns Read scope type when read string is input" Read (scopeStringToScopeType "read"))

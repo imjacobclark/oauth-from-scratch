@@ -1,8 +1,8 @@
-module AuthorizeSpec where
+module Controllers.AuthorizeSpec where
 
 import Test.HUnit
 
-import Authorize
+import Controllers.Authorize
 import Models.Client
 
 testWithUnknownClientId             = TestCase (assertEqual "returns Nothing when an unknown clientID is requested" Nothing (findClientByClientID $ ClientID 0))

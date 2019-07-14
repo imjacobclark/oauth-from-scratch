@@ -1,6 +1,6 @@
 import Test.HUnit
 
-import AuthorizeSpec
+import Controllers.AuthorizeSpec
 import Models.ClientSpec
 
 main :: IO Counts

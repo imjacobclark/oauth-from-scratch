@@ -12,7 +12,7 @@ import Data.Monoid (mconcat)
 
 import qualified Data.Text.Lazy as LT
 
-import Authorize
+import Controllers.Authorize
 import Utils
 import Models.Client
 
