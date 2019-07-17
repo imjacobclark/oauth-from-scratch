@@ -4,11 +4,7 @@ import Test.HUnit
 
 import Controllers.Authorize
 import Models.Client
-
-testWithUnknownClientId             = TestCase (assertEqual "returns Nothing when an unknown clientID is requested" Nothing (findClientByClientID $ ClientID 0))
-testWithKnownReadClientId           = TestCase (assertEqual "returns Just Client when a known clientID is requested" (Just $ readClient) (findClientByClientID $ ClientID 1))
-testWithKnownWriteClientId          = TestCase (assertEqual "returns Just Client when a known clientID is requested" (Just $ writeClient) (findClientByClientID $ ClientID 2))
-testWithKnownReadAndWriteClientId   = TestCase (assertEqual "returns Just Client when a known clientID is requested" (Just $ writeClient) (findClientByClientID $ ClientID 2))
+import Data.Clients
 
 testWithUnknownScope                                        = TestCase (assertEqual "returns Nothing when no scope is requested" Nothing (validateRequestedScope (Just unscopedClient) []))
 testWithValidRequestedReadScope_AgainstAReadClient          = TestCase (assertEqual "returns Just Read when a read scope is requested against a read client" (Just [Read]) (validateRequestedScope (Just readClient) [Read]))
@@ -32,10 +28,6 @@ testWithTwoElements = TestCase (assertEqual "returns first string when two strin
 testWithZeroElements  = TestCase (assertEqual "returns empty string when no strings are specified" "" (getFirstRedirectUri []))
 
 authorizeSpecTests = [
-    TestLabel "findClientByClientID" testWithUnknownClientId,
-    TestLabel "findClientByClientID" testWithKnownReadClientId,
-    TestLabel "findClientByClientID" testWithKnownWriteClientId,
-    TestLabel "findClientByClientID" testWithKnownReadAndWriteClientId,
     TestLabel "validateRequestedScope" testWithValidRequestedReadScope_AgainstAReadClient,
     TestLabel "validateRequestedScope" testWithInvalidRequestedReadScope_AgainstAWriteClient,
     TestLabel "validateRequestedScope" testWithARequestedReadWriteScope_AgainstAReadOnlyClient,
