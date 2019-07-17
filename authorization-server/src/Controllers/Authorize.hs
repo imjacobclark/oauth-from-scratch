@@ -12,12 +12,6 @@ unscopedClient = Client (ClientID 3) 987612345 [] ["http://localhost:3000/callba
 noRedirectClient = Client (ClientID 4) 1357908642 [Read] []
 redirectClientA = Client (ClientID 4) 1357908642 [Read] ["http://localhost:3000/callback"]
 
-getAllClients :: [Client]
-getAllClients = [readClient, writeClient, writeAndReadClient, unscopedClient]
-
-findClientByClientID :: ClientID -> Maybe Client
-findClientByClientID clientIDToFind = find (\client -> (clientId $ Models.Client.id client) == (clientId clientIDToFind)) getAllClients
-
 validateClientHasScope :: Client -> Scope -> Maybe Scope
 validateClientHasScope client requestedScope = find (== requestedScope) (scope client)
 
@@ -28,12 +22,26 @@ validateRequestedScope (Just client) requestedScopes =
      in sequence scopeValidationResults
 
 validateRedirectUri :: Maybe Client -> String-> Maybe String
-validateRedirectUri Nothing [] = Nothing
+validateRedirectUri Nothing _ = Nothing
+validateRedirectUri _ "" = Nothing
 validateRedirectUri (Just client) redirectUri = find (== redirectUri) (redirectUris client)
+
+getFirstRedirectUri :: [String] -> String
+getFirstRedirectUri [] = ""
+getFirstRedirectUri (x:_) = x
+
+getAllClients :: [Client]
+getAllClients = [readClient, writeClient, writeAndReadClient, unscopedClient]
+
+findClientByClientID :: ClientID -> Maybe Client
+findClientByClientID clientIDToFind = find (\client -> (clientId $ Models.Client.id client) == (clientId clientIDToFind)) getAllClients
+
+findClient :: Client -> Maybe Client
+findClient client = findClientByClientID . Models.Client.id $ client
 
 validateClientRequestingAuthorization :: Client -> Maybe Client
 validateClientRequestingAuthorization client
-    | (findClientByClientID . Models.Client.id $ client) == Nothing = Nothing
-    | (validateRequestedScope (findClientByClientID . Models.Client.id $ client) (scope $ client)) == Nothing = Nothing
-    | (validateRedirectUri (findClientByClientID . Models.Client.id $ client) ((redirectUris $ client) !! 0)) == Nothing = Nothing
+    | findClient client == Nothing = Nothing
+    | validateRequestedScope (findClient client) (scope client) == Nothing = Nothing
+    | validateRedirectUri (findClient client) (getFirstRedirectUri . redirectUris $ client) == Nothing = Nothing
     | otherwise = Just client
