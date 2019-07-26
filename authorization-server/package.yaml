@@ -26,6 +26,8 @@ dependencies:
 - text
 - split
 - http-types
+- cache
+- uuid
 
 library:
   source-dirs: src
