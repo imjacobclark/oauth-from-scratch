@@ -15,8 +15,8 @@ import qualified Data.Text.Lazy as LT
 import Controllers.Authorize
 import Utils
 import Models.Client
+import Cache
 
-import Data.Cache
 import Data.UUID
 import Data.UUID.V4 ( nextRandom )
 
@@ -34,37 +34,46 @@ generateRequestID = do
     let randomUUID = nextRandom
     toString <$> randomUUID
 
-newCacheClient :: IO (Cache String String)
-newCacheClient = do
-    c <- newCache Nothing
-    return c
+notFoundErrorMessage = "Couldn't find what you were looking for."
 
 server :: IO ()
-server = scotty 3000 $ do
-    get "/" $ do
-        html "authorization-server"
+server = do
+    cacheClient <- newClientCache
+    scotty 3000 $ do
+        get "/" $ do
+            html "authorization-server"
 
-    -- localhost:3000/authorize?client_id=1&client_id=123456789&redirect_uri=http://localhost:3000/callback&scope=read
-    get "/authorize" $ do
-        requestId <- liftIO $ generateRequestID
+        -- localhost:3000/authorize?client_id=1&client_id=123456789&redirect_uri=http://localhost:3000/callback&scope=read
+        get "/authorize" $ do
+            requestId <- liftIO $ generateRequestID
 
-        clientIdParam <- param "client_id"
-        clientSecretParam <- param "client_id"
-        redirectUriParam <- param "redirect_uri"
-        scopeParam <- param "scope"
+            clientIdParam <- param "client_id"
+            clientSecretParam <- param "client_id"
+            redirectUriParam <- param "redirect_uri"
+            scopeParam <- param "scope"
 
-        let client = validateClientRequestingAuthorization $ requestParamsToClient clientIdParam clientSecretParam redirectUriParam scopeParam
+            let client = validateClientRequestingAuthorization $ requestParamsToClient clientIdParam clientSecretParam redirectUriParam scopeParam
 
-        case client of
-            (Just client) -> do
-                status status302
-                setHeader "X-Forwarded-From" "/authorize"
-                setHeader "Location" $ LT.pack ("/approve?request_id=" ++ requestId)
-            Nothing -> do
-                status status404
-                html "Couldn't find what you were looking for."
+            case client of
+                (Just client) -> do
+                    liftIO $ insertInflightClientIntoCache cacheClient client requestId
+                    status status302
+                    setHeader "X-Forwarded-From" "/authorize"
+                    setHeader "Location" $ LT.pack ("/approve?request_id=" ++ requestId)
+                Nothing -> do
+                    status status404
+                    html notFoundErrorMessage
 
-    get "/approve" $ do
-        html "Not implemented"
+        get "/approve" $ do
+            requestId <- param "request_id"
 
-        
+            client <- liftIO $ findInflightClientInCache cacheClient requestId
+
+            case client of
+                (Just client) -> do
+                    html $ mconcat [LT.pack . show $ client]
+                Nothing -> do
+                    status status404
+                    html notFoundErrorMessage
+
+            
